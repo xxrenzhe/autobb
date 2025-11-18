@@ -5,9 +5,9 @@
 ## 📊 总体进度
 
 - **当前阶段**: Phase 2 - 数据同步与可视化
-- **已完成Sprint**: 7个
-- **整体进度**: ~58% (7/12 sprints)
-- **预计完成**: Week 13 (剩余5个sprints)
+- **已完成Sprint**: 8个
+- **整体进度**: ~67% (8/12 sprints)
+- **预计完成**: Week 13 (剩余4个sprints)
 
 ---
 
@@ -214,29 +214,53 @@ ALTER TABLE creatives ADD COLUMN last_sync_at TEXT;
 
 ---
 
+### Sprint 8: Dashboard数据大盘 ✅
+
+**完成日期**: Week 7-8
+**Git Commit**: (待提交)
+
+**主要交付物**:
+- ✅ Dashboard数据聚合后端API（4个核心API）
+- ✅ KPI卡片组件（展示、点击、花费、转化 + 趋势对比）
+- ✅ Campaign列表组件（排序、搜索、筛选、分页）
+- ✅ 智能洞察组件（5规则引擎 + 优先级排序）
+- ✅ Dashboard主页面集成（全部组件）
+
+**核心API**:
+- GET `/api/dashboard/kpis?days=7` - KPI指标与period-over-period对比
+- GET `/api/dashboard/trends?days=7` - 时间序列趋势数据
+- GET `/api/dashboard/campaigns?sortBy=cost&page=1` - Campaign性能列表
+- GET `/api/dashboard/insights?days=7` - 智能洞察（规则引擎）
+
+**前端组件**:
+- `KPICards.tsx` - 4个主KPI卡片 + 3个附加指标（CTR/CPC/转化率）
+- `CampaignList.tsx` - 全功能Campaign表格（8列 + 排序 + 搜索 + 筛选 + 分页）
+- `InsightsCard.tsx` - 智能洞察卡片（5规则 + 优先级 + 建议）
+- Dashboard主页面整合所有组件
+
+**智能洞察规则**:
+1. CTR过低检测（< 1.0%，高优先级）
+2. 预算超标检测（> 120%，高优先级）
+3. 转化率低检测（< 2.0%，中优先级）
+4. 优异表现检测（CTR > 3.0% AND 转化 > 5.0%，低优先级）
+5. 长期未更新检测（> 30天，低优先级）
+
+**技术特性**:
+- 所有API支持时间范围过滤（7/30/90天）
+- 数据聚合基于SQLite（campaign_performance表）
+- user_id数据隔离确保多租户安全
+- 自动刷新机制（KPICards, InsightsCard）
+- 响应式布局（移动端适配）
+
+---
+
 ## 🚧 进行中Sprint
 
-### Sprint 8: Dashboard数据大盘 (In Planning)
-
-**计划开始**: Week 7
-**预计完成**: Week 8
-
-**待实现功能**:
-- Dashboard数据聚合后端API
-- KPI卡片组件（展示、点击、花费、转化）
-- 趋势图表（Recharts）
-- Campaign列表（排序、筛选、分页）
-- 智能洞察（规则引擎）
+暂无进行中Sprint
 
 ---
 
 ## 📅 未来Sprint规划
-
-### Sprint 8: 后端数据同步服务 (Week 8-9)
-- 定时数据同步任务
-- 同步日志记录
-- 性能数据存储（SQLite）
-- 90天数据保留策略
 
 ### Sprint 9: 内容编辑与版本管理 (Week 9-10)
 - Creative编辑功能
@@ -265,13 +289,13 @@ ALTER TABLE creatives ADD COLUMN last_sync_at TEXT;
 | 里程碑 | 目标 | 计划完成 | 实际状态 | 进度 |
 |--------|------|----------|---------|------|
 | M1 | MVP功能完成 | Week 5 | ✅ 已完成 | 100% |
-| M2 | 数据能力完成 | Week 8 | 🚧 进行中 | 50% |
+| M2 | 数据能力完成 | Week 8 | ✅ 已完成 | 100% |
 | M3 | 增强功能完成 | Week 11 | ⏳ 待开始 | 0% |
 | M4 | 生产就绪 | Week 13 | ⏳ 待开始 | 0% |
 
 **M2进度详情**:
 - ✅ Sprint 7: 数据同步服务（100%）
-- ⏳ Sprint 8: Dashboard数据大盘（0%）
+- ✅ Sprint 8: Dashboard数据大盘（100%）
 
 ---
 
@@ -313,6 +337,14 @@ ALTER TABLE creatives ADD COLUMN last_sync_at TEXT;
 
 ## 📝 更新日志
 
+### 2025-11-18 (晚上)
+- ✅ 完成Sprint 8：Dashboard数据大盘
+- 📝 实现4个Dashboard后端API（KPIs/Trends/Campaigns/Insights）
+- 🎨 创建3个前端组件（KPICards/CampaignList/InsightsCard）
+- 🔗 整合Dashboard主页面
+- 🎯 **M2里程碑达成**（数据能力完成）
+- 📊 整体进度：67% (8/12 sprints)
+
 ### 2025-11-18 (下午)
 - ✅ 完成Sprint 7：数据同步服务
 - 📝 添加DataSyncService + GAQL查询
@@ -338,4 +370,4 @@ ALTER TABLE creatives ADD COLUMN last_sync_at TEXT;
 
 ---
 
-**下一步工作**: Sprint 8 - Dashboard数据大盘实现
+**下一步工作**: Sprint 9 - 内容编辑与版本管理
