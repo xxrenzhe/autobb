@@ -33,7 +33,7 @@ Google Ads广告投放是企业获取流量和客户的重要渠道，但传统�
 - 将复杂的广告创建流程简化为"一键上广告"
 - 通过AI自动生成高质量广告创意
 - 提供数据大盘和智能优化建议，降低优化门槛
-- 采用前端本地存储架构，保护用户数据隐私，降低使用成本
+- 采用后端SQLite数据库架构，确保数据安全、持久化和跨设备同步
 
 **核心价值主张**：
 > "3分钟创建专业Google Ads广告，AI助力提升50%创意质量，数据可视化助你轻松优化"
@@ -57,9 +57,87 @@ Google Ads广告投放是企业获取流量和客户的重要渠道，但传统�
 
 ---
 
-## 2. 核心功能需求
+## 2. 用户管理与认证
 
-### 2.1 快速创建Offer
+### 2.1 用户注册与登录
+
+**功能描述**：
+系统采用后端SQLite数据库架构，支持多用户管理，每个用户拥有独立的数据空间。
+
+**用户模型**：
+| 角色 | 权限 | 说明 |
+|------|------|------|
+| **管理员** (admin) | 完全权限 | 可管理所有用户、查看所有数据 |
+| **普通用户** (user) | 个人数据权限 | 只能访问自己的Offers和Campaigns |
+
+**功能要求**：
+
+#### 用户登录
+- 用户名 + 密码登录
+- JWT Token认证（有效期7天）
+- "记住我"功能（延长token有效期）
+- 登录失败限流（5次失败锁定5分钟）
+
+#### 用户注册
+- 初始版本由管理员创建用户账号
+- 用户首次登录强制修改密码
+- 包含套餐类型和有效期设置
+
+**套餐类型**：
+| 套餐 | 价格 | 有效期 | 说明 |
+|------|------|--------|------|
+| 年卡 | ¥5,999 | 365天 | 适合BB新人 |
+| 终身买断 | ¥10,999 | 100年 | 适合持续投入的个人 |
+| 私有化部署 | ¥29,999 | 1年+续签 | 独立工作室，含技术支持 |
+| 试用套餐 | 免费 | 7/14/30天 | 市场推广活动 |
+
+**数据隔离**：
+- 每个用户只能看到自己创建的Offers和Campaigns
+- 通过`user_id`字段实现数据库层隔离
+- API层验证JWT token中的userId
+
+**交互流程**：
+```
+1. 用户打开系统 → 检查登录状态
+   └─ 未登录 → 跳转登录页
+   └─ 已登录 → 验证token有效期
+      └─ 已过期 → 提示重新登录
+      └─ 未过期 → 进入Dashboard
+
+2. 用户输入用户名和密码 → 点击登录
+3. 后端验证凭据
+   └─ 成功 → 返回JWT token
+   └─ 失败 → 显示错误信息 + 限流检查
+
+4. 前端存储token → 跳转Dashboard
+5. 后续所有API请求携带token
+```
+
+### 2.2 数据安全与隐私
+
+**安全措施**：
+- 密码使用bcrypt加密存储（cost=10）
+- OAuth Token使用AES-256-GCM加密
+- JWT Secret使用64位随机密钥
+- API请求限流防止滥用
+- 数据库连接使用单例模式
+- 并发更新使用乐观锁（version字段）
+
+**数据备份**：
+- 后端SQLite自动每日备份
+- 保留最近30天备份
+- 用户可通过管理员导出数据
+
+**跨设备同步**：
+- 用户在任何设备登录即可访问数据
+- 数据实时从后端数据库加载
+- 前端缓存提升访问速度
+
+---
+
+## 3. 核心功能需求
+
+### 3.1 快速创建Offer
 
 **功能描述**：
 用户可以快速创建一个"Offer"（营销主张/产品推广），作为后续广告创建的基础。
@@ -108,8 +186,8 @@ Offer 2: "Reolink摄像头-德国" → targetCountry=GE → targetLanguage=Germa
 **交互流程**：
 ```
 1. 用户点击"创建Offer"按钮
-2. 填写表单（支持草稿保存）
-3. 点击"保存" → 存储到IndexedDB
+2. 填写表单（支持草稿自动保存到本地）
+3. 点击"保存" → 提交到后端API → 保存到SQLite数据库
 4. 跳转到Offer列表页，显示新创建的Offer
 ```
 
@@ -141,7 +219,7 @@ Offer 2: "Reolink摄像头-德国" → targetCountry=GE → targetLanguage=Germa
 
 ---
 
-### 2.2 快速为Offer创建广告
+### 3.2 快速为Offer创建广告
 
 **功能描述**：
 用户选择一个Offer，点击"一键上广告"，系统自动生成广告创意并创建Google Ads Campaign。
@@ -202,7 +280,7 @@ Offer 2: "Reolink摄像头-德国" → targetCountry=GE → targetLanguage=Germa
 
 ---
 
-### 2.3 快速生成广告创意
+### 3.3 快速生成广告创意
 
 **功能描述**：
 基于Offer信息和品牌网站，AI自动生成15个Headlines、4个Descriptions、3-4个Callouts、3-4个Sitelinks，并提供质量评分和重新生成功能。
@@ -323,7 +401,7 @@ grade:
 
 ---
 
-### 2.4 真实上线广告
+### 3.4 真实上线广告
 
 **功能描述**：
 通过Google Ads API创建真实的Campaign、AdGroup、Ad、Keywords和Assets，并引导用户完成手动步骤。
@@ -417,10 +495,10 @@ grade:
 
 ---
 
-### 2.5 广告系列数据每日同步
+### 3.5 广告系列数据每日同步
 
 **功能描述**：
-用户打开网页时，系统自动从Google Ads API同步昨日及历史性能数据，存储到浏览器IndexedDB。
+用户打开网页时，系统自动从Google Ads API同步昨日及历史性能数据，存储到后端SQLite数据库。前端从后端API获取数据并缓存。
 
 **用户故事**：
 > 作为广告主，我希望每次打开页面时自动看到最新的广告数据，无需手动刷新或等待。
@@ -443,7 +521,7 @@ grade:
    ├─ 查询Campaign元数据变化（名称、状态、预算）
    └─ 查询Google优化建议
 
-3. 存储到IndexedDB（upsert）
+3. 存储到后端数据库（upsert）
    └─ Key: ${accountId}-${campaignId}-${date}
 
 4. 更新同步时间戳
@@ -454,9 +532,9 @@ grade:
 
 | 数据类型 | 同步范围 | 更新频率 | 存储位置 |
 |---------|---------|---------|---------|
-| Campaign性能数据 | 近90天 | 每日一次（T+1） | IndexedDB `campaignPerformance` |
-| Campaign元数据 | 全部活跃Campaign | 每次同步 | IndexedDB `campaigns` |
-| 优化建议 | 全部待处理建议 | 每日一次 | IndexedDB `optimizationRecommendations` |
+| Campaign性能数据 | 近90天 | 每日一次（T+1） | SQLite `campaign_performance` + 前端缓存 |
+| Campaign元数据 | 全部活跃Campaign | 每次同步 | SQLite `campaigns` + 前端缓存 |
+| 优化建议 | 全部待处理建议 | 每日一次 | SQLite `weekly_recommendations` |
 
 **同步状态展示**：
 ```
@@ -515,7 +593,7 @@ ORDER BY segments.date DESC
 
 ---
 
-### 2.6 广告表现数据大盘展现
+### 3.6 广告表现数据大盘展现
 
 **功能描述**：
 通过可视化图表和数据表格，展示Campaign性能数据、趋势分析、智能洞察。
@@ -633,7 +711,7 @@ ORDER BY segments.date DESC
 
 ---
 
-### 2.7 关键词搜索量查询
+### 3.7 关键词搜索量查询
 
 **功能描述**：
 通过Google Ads Keyword Planner API查询用户输入的关键词在目标国家的真实搜索量、竞争程度和建议出价，帮助用户选择高价值关键词。
@@ -686,7 +764,7 @@ ORDER BY segments.date DESC
 ```
 
 **数据存储**：
-- 存储到IndexedDB: `offers` 表的 `keywordMetrics` 字段
+- 存储到后端数据库: `offers` 表的 `target_keywords` 字段（JSON格式）
 - 缓存有效期: 7天(Google数据更新频率为周度)
 - 过期后自动重新查询
 
@@ -709,7 +787,7 @@ ORDER BY segments.date DESC
 
 ---
 
-### 2.8 一键调整CPC
+### 3.8 一键调整CPC
 
 **功能描述**：
 用户可以在Offer列表页点击"一键调整CPC"按钮,快速调整该Offer关联的所有Campaign的CPC出价,无需进入Google Ads后台。
@@ -826,7 +904,7 @@ ORDER BY segments.date DESC
 
 ---
 
-### 2.9 系统配置管理
+### 3.9 系统配置管理
 
 **功能描述**：
 提供统一的配置页面,展示所有需要用户配置的系统设置,包括Google Ads账号连接、AI API密钥、默认广告参数等,支持热更新(修改后立即生效)。
@@ -930,7 +1008,7 @@ ORDER BY segments.date DESC
 │  │ [立即备份到本地文件] [导入备份文件]                    │ │
 │  │                                                         │ │
 │  │ 数据隐私:                                               │ │
-│  │ ✅ 所有数据存储在浏览器本地 (IndexedDB)                │ │
+│  │ ✅ 数据安全存储在后端数据库，支持跨设备访问              │ │
 │  │ ✅ API Key 使用 AES-256 加密                           │ │
 │  │ ✅ Google OAuth Token 安全存储                         │ │
 │  │ ⚠️ 清除浏览器数据会丢失所有配置,请定期备份              │ │
@@ -975,7 +1053,7 @@ async function updateConfig(key: string, value: any) {
     throw new Error('配置值无效');
   }
 
-  // 2. 更新IndexedDB
+  // 2. 保存到后端数据库
   await db.configs.put({ key, value, updatedAt: new Date() });
 
   // 3. 触发全局配置更新事件
@@ -1060,7 +1138,7 @@ async function getAPIKey(provider: string): Promise<string> {
 
 ---
 
-### 2.10 Offer投放评分（Launch Score）
+### 3.10 Offer投放评分（Launch Score）
 
 **功能描述**：
 通过多维度数据分析和AI评估，为Offer提供投放ROI预测评分，帮助用户在投放前判断广告成功概率。
@@ -1394,9 +1472,9 @@ function shouldRecalculate(offer: Offer, cache: LaunchScoreCache): boolean {
 
 ---
 
-## 3. 次要功能需求
+## 4. 次要功能需求
 
-### 3.1 内容编辑能力
+### 4.1 内容编辑能力
 
 **需求**：用户可以直接编辑AI生成的Headlines、Descriptions、Callouts、Sitelinks。
 
@@ -1406,7 +1484,7 @@ function shouldRecalculate(offer: Offer, cache: LaunchScoreCache): boolean {
 - 支持添加/删除创意元素
 - 标记用户编辑的内容（与AI生成区分）
 
-### 3.2 历史版本管理和对比
+### 4.2 历史版本管理和对比
 
 **需求**：保存每次生成的创意版本，支持版本对比和恢复。
 
@@ -1416,7 +1494,7 @@ function shouldRecalculate(offer: Offer, cache: LaunchScoreCache): boolean {
 - 并排对比2个版本的差异
 - 一键恢复到历史版本
 
-### 3.3 关键词智能分类优化
+### 4.3 关键词智能分类优化
 
 **需求**：自动分类关键词匹配类型，用户可覆盖。
 
@@ -1427,7 +1505,7 @@ function shouldRecalculate(offer: Offer, cache: LaunchScoreCache): boolean {
 - 自动生成否定关键词建议
 - 用户可手动修改分类
 
-### 3.4 合规性检查
+### 4.4 合规性检查
 
 **需求**：检查广告内容是否违反Google Ads政策。
 
@@ -1437,7 +1515,7 @@ function shouldRecalculate(offer: Offer, cache: LaunchScoreCache): boolean {
 - 限制行业检测（医疗、金融需特殊许可）
 - 违规时显示警告并提供修改建议
 
-### 3.5 成本预估和ROI预测
+### 4.5 成本预估和ROI预测
 
 **需求**：基于行业数据预估广告成本和ROI。
 
@@ -1447,7 +1525,7 @@ function shouldRecalculate(offer: Offer, cache: LaunchScoreCache): boolean {
 - 显示30天ROI预测
 - 与行业基准对比
 
-### 3.6 智能优化建议（基于真实数据）
+### 4.6 智能优化建议（基于真实数据）
 
 **需求**：调用Google Ads Recommendations API，提供优化建议。
 
@@ -1457,21 +1535,21 @@ function shouldRecalculate(offer: Offer, cache: LaunchScoreCache): boolean {
 - 显示预期影响（展示、点击、转化提升）
 - 支持一键应用建议
 
-### 3.7 数据导出/导入
+### 4.7 数据导出/导入
 
 **需求**：用户可以导出本地数据到JSON文件，在其他设备导入。
 
 **实现**：
-- 导出所有IndexedDB数据为JSON
+- 导出所有数据为JSON（通过后端API）
 - 导入时支持"替换"或"合并"模式
 - 导入前验证数据格式和版本兼容性
 - 提供备份提醒（建议每周导出一次）
 
 ---
 
-## 4. 非功能性需求
+## 5. 非功能性需求
 
-### 4.1 性能要求
+### 5.1 性能要求
 
 | 指标 | 目标值 | 测量方法 |
 |------|-------|---------|
@@ -1479,9 +1557,9 @@ function shouldRecalculate(offer: Offer, cache: LaunchScoreCache): boolean {
 | Dashboard加载时间 | < 2秒 | 自定义埋点 |
 | AI创意生成时间 | < 15秒 | 后端日志 |
 | 数据同步时间 | < 10秒（5个账号） | 自定义埋点 |
-| IndexedDB查询时间 | < 100ms | Performance API |
+| 数据库查询时间 | < 100ms | Performance API |
 
-### 4.2 兼容性要求
+### 5.2 兼容性要求
 
 | 类别 | 要求 |
 |------|------|
@@ -1490,7 +1568,7 @@ function shouldRecalculate(offer: Offer, cache: LaunchScoreCache): boolean {
 | 操作系统 | Windows 10+, macOS 11+, Linux |
 | 网络 | 支持离线查看历史数据，联网时自动同步 |
 
-### 4.3 安全性要求
+### 5.3 安全性要求
 
 | 要求 | 实现方案 |
 |------|---------|
@@ -1499,7 +1577,7 @@ function shouldRecalculate(offer: Offer, cache: LaunchScoreCache): boolean {
 | API密钥保护 | Google Ads API密钥通过环境变量配置，不暴露到前端 |
 | 数据隐私 | 用户数据存储在浏览器本地，不上传服务器 |
 
-### 4.4 可用性要求
+### 5.4 可用性要求
 
 | 要求 | 目标 |
 |------|------|
@@ -1508,7 +1586,7 @@ function shouldRecalculate(offer: Offer, cache: LaunchScoreCache): boolean {
 | 用户引导 | 首次使用提供交互式教程 |
 | 帮助文档 | 每个功能提供"?"图标链接到帮助文档 |
 
-### 4.5 数据可靠性要求
+### 5.5 数据可靠性要求
 
 | 要求 | 实现方案 |
 |------|---------|
@@ -1518,9 +1596,9 @@ function shouldRecalculate(offer: Offer, cache: LaunchScoreCache): boolean {
 
 ---
 
-## 5. 用户体验设计原则
+## 6. 用户体验设计原则
 
-### 5.1 设计理念
+### 6.1 设计理念
 
 **核心原则**：
 1. **简单至上**：每个操作步骤不超过3步
@@ -1528,7 +1606,7 @@ function shouldRecalculate(offer: Offer, cache: LaunchScoreCache): boolean {
 3. **智能默认**：提供最佳实践的默认配置
 4. **可控性**：AI生成的内容用户可编辑和覆盖
 
-### 5.2 交互规范
+### 6.2 交互规范
 
 **按钮设计**：
 - 主要操作：蓝色填充按钮（如"一键上广告"）
@@ -1550,7 +1628,7 @@ function shouldRecalculate(offer: Offer, cache: LaunchScoreCache): boolean {
 - 提供解决建议或重试按钮
 - 不使用技术术语，用通俗语言
 
-### 5.3 信息架构
+### 6.3 信息架构
 
 ```
 AutoAds
@@ -1582,9 +1660,9 @@ AutoAds
 
 ---
 
-## 6. 成功指标（KPIs）
+## 7. 成功指标（KPIs）
 
-### 6.1 产品使用指标
+### 7.1 产品使用指标
 
 | 指标 | 目标值 | 测量频率 |
 |------|-------|---------|
@@ -1595,7 +1673,7 @@ AutoAds
 | 平均创建Offer数 | > 5个/用户 | 月度 |
 | 平均创建Campaign数 | > 3个/用户 | 月度 |
 
-### 6.2 功能使用指标
+### 7.2 功能使用指标
 
 | 指标 | 目标值 | 说明 |
 |------|-------|------|
@@ -1606,7 +1684,7 @@ AutoAds
 | Campaign创建成功率 | > 95% | API调用成功创建的比例 |
 | 数据同步成功率 | > 98% | 自动同步成功的比例 |
 
-### 6.3 业务影响指标
+### 7.3 业务影响指标
 
 | 指标 | 目标值 | 说明 |
 |------|-------|------|
@@ -1617,7 +1695,7 @@ AutoAds
 
 ---
 
-## 7. 里程碑规划
+## 8. 里程碑规划
 
 ### Phase 1: MVP核心功能（4周）
 **目标**：实现最小可用产品，验证核心价值
@@ -1627,7 +1705,7 @@ AutoAds
 - ✅ AI创意生成（带Fallback）
 - ✅ 质量评分和重新生成
 - ✅ Google Ads Campaign创建
-- ✅ IndexedDB数据存储
+- ✅ 后端数据库存储（SQLite）
 
 **成功标准**：
 - 10个内测用户成功创建广告
@@ -1669,7 +1747,7 @@ AutoAds
 **交付物**：
 - ✅ 成本预估和ROI预测
 - ✅ Google Ads Recommendations API集成
-- ✅ 性能优化（加载速度、IndexedDB查询）
+- ✅ 性能优化（加载速度、数据库查询、API响应）
 - ✅ 用户引导和帮助文档
 
 **成功标准**：
@@ -1679,18 +1757,18 @@ AutoAds
 
 ---
 
-## 8. 风险和应对
+## 9. 风险和应对
 
-### 8.1 技术风险
+### 9.1 技术风险
 
 | 风险 | 影响 | 概率 | 应对措施 |
 |------|------|------|---------|
 | Google Ads API配额限制 | 高 | 中 | 实现智能限流和缓存，避免重复调用 |
 | AI生成质量不稳定 | 中 | 中 | 多次测试优化Prompt，提供Fallback模板 |
-| IndexedDB容量限制 | 中 | 低 | 实现90天数据清理，提供导出备份 |
+| 数据库容量管理 | 低 | 低 | 后端SQLite自动管理，实现90天数据清理 |
 | OAuth Token被盗 | 高 | 低 | 前端加密存储，用户密码保护，定期刷新Token |
 
-### 8.2 业务风险
+### 9.2 业务风险
 
 | 风险 | 影响 | 概率 | 应对措施 |
 |------|------|------|---------|
@@ -1699,7 +1777,7 @@ AutoAds
 | Google政策变化 | 高 | 低 | 持续关注Google Ads政策，快速适配 |
 | 用户流失 | 高 | 中 | 持续优化体验，提供优质内容和支持 |
 
-### 8.3 运营风险
+### 9.3 运营风险
 
 | 风险 | 影响 | 概率 | 应对措施 |
 |------|------|------|---------|
@@ -1709,9 +1787,9 @@ AutoAds
 
 ---
 
-## 9. 附录
+## 10. 附录
 
-### 9.1 术语表
+### 10.1 术语表
 
 | 术语 | 定义 |
 |------|------|
@@ -1726,14 +1804,15 @@ AutoAds
 | CPC | Cost Per Click，单次点击成本 |
 | CPA | Cost Per Acquisition，单次转化成本 |
 | CVR | Conversion Rate，转化率 = 转化数 / 点击数 |
-| IndexedDB | 浏览器本地数据库，用于存储大量结构化数据 |
+| SQLite | 轻量级嵌入式数据库，后端数据持久化存储 |
 | Fallback | 降级策略，当主要方案失败时的备选方案 |
 
-### 9.2 参考资料
+### 10.2 参考资料
 
 - [Google Ads API Documentation](https://developers.google.com/google-ads/api/docs/start)
 - [Responsive Search Ads Best Practices](https://support.google.com/google-ads/answer/7684791)
-- [IndexedDB API](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)
+- [SQLite Documentation](https://www.sqlite.org/docs.html)
+- [better-sqlite3](https://github.com/WiseLibs/better-sqlite3)
 - [Google Ads Policy Center](https://support.google.com/adspolicy)
 
 ---
