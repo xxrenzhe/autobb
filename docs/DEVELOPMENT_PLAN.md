@@ -22,35 +22,42 @@
 ### 1.2 开发阶段
 
 ```
-Phase 1: MVP核心功能 (4周)
-  ├─ Sprint 1-2: 基础架构 + Offer管理
-  └─ Sprint 3-4: AI创意生成 + Campaign创建
+Phase 1: MVP核心功能 (5周)
+  ├─ Sprint 1-2: 基础架构 + 用户认证 + Offer管理
+  ├─ Sprint 3: AI创意生成服务
+  └─ Sprint 4-5: Launch Score + Campaign创建 + A/B测试
 
 Phase 2: 数据同步与可视化 (3周)
-  ├─ Sprint 5: 数据同步服务
-  └─ Sprint 6: Dashboard大盘
+  ├─ Sprint 6: 后端数据同步服务
+  └─ Sprint 7-8: Dashboard数据大盘
 
 Phase 3: 增强功能 (3周)
-  ├─ Sprint 7: 内容编辑 + 版本管理
-  └─ Sprint 8: 合规检查 + 优化建议
+  ├─ Sprint 9: 内容编辑 + 版本管理
+  └─ Sprint 10: 合规检查 + 优化建议
 
 Phase 4: 优化与上线 (2周)
-  ├─ Sprint 9: 性能优化 + Bug修复
-  └─ Sprint 10: 生产部署 + 文档完善
+  ├─ Sprint 11: 性能优化 + Bug修复
+  └─ Sprint 12: 生产部署 + 文档完善
 ```
+
+**重要更新**：
+- 增加用户认证系统（Google OAuth + JWT + 数据隔离）
+- 增加Launch Score投放评分功能（5维度评分）
+- 所有数据改为后端SQLite存储，前端通过API调用
+- 增加后端API开发任务（每个Sprint）
 
 ### 1.3 里程碑
 
 | 里程碑 | 目标 | 完成日期 | 交付物 |
 |--------|------|----------|--------|
-| M1 | MVP功能完成 | Week 4 | Offer创建、AI生成、Campaign上线 |
-| M2 | 数据能力完成 | Week 7 | 数据同步、Dashboard可视化 |
-| M3 | 增强功能完成 | Week 10 | 编辑、版本、合规、优化 |
-| M4 | 生产就绪 | Week 12 | 性能优化、部署上线 |
+| M1 | MVP功能完成 | Week 5 | 用户认证、Offer创建、AI生成、Launch Score、Campaign上线 |
+| M2 | 数据能力完成 | Week 8 | 后端数据同步、Dashboard可视化 |
+| M3 | 增强功能完成 | Week 11 | 编辑、版本、合规、优化 |
+| M4 | 生产就绪 | Week 13 | 性能优化、部署上线 |
 
 ---
 
-## 二、Phase 1: MVP核心功能 (4周)
+## 二、Phase 1: MVP核心功能 (5周)
 
 ### Sprint 1-2: 基础架构 + Offer管理 (2周)
 
@@ -65,24 +72,40 @@ Phase 4: 优化与上线 (2周)
   - **工时**：0.5天
   - **负责人**：前端开发
 
-- [ ] **T1.1.2** - 设置IndexedDB数据库
-  - 安装`idb`库
-  - 定义数据库Schema (7张表)
-  - 创建初始化脚本
-  - 实现数据库升级逻辑
-  - **工时**：1天
-  - **负责人**：前端开发
-
-- [ ] **T1.1.3** - 实现OAuth认证流程
-  - 创建Google OAuth配置
-  - 实现前端授权跳转组件
-  - 创建`/api/oauth/callback`路由
-  - 实现Token加密存储服务
-  - 测试完整授权流程
+- [ ] **T1.1.2** - 设置后端SQLite数据库
+  - 安装SQLite3库（Go: github.com/mattn/go-sqlite3 或 Node.js: better-sqlite3）
+  - 定义数据库Schema（用户表 + 7张业务表）
+  - 创建数据库迁移脚本（golang-migrate或类似工具）
+  - 实现数据库连接池和查询封装
   - **工时**：1.5天
   - **负责人**：后端开发
 
-- [ ] **T1.1.4** - UI设计系统搭建
+- [ ] **T1.1.2a** - 实现用户认证系统
+  - 实现Google OAuth 2.0登录流程
+  - JWT token生成和验证中间件
+  - bcrypt密码加密（如支持邮箱登录）
+  - AES-256-GCM OAuth令牌加密存储
+  - 用户表CRUD API（/api/users）
+  - **工时**：2天
+  - **负责人**：后端开发
+
+- [ ] **T1.1.2b** - 实现用户权限和数据隔离
+  - 基于user_id的数据隔离中间件
+  - 角色权限控制（admin/user）
+  - API速率限制中间件
+  - 套餐类型管理（年卡/终身/私有化/试用）
+  - **工时**：1.5天
+  - **负责人**：后端开发
+
+- [ ] **T1.1.2c** - 前端认证状态管理
+  - 实现登录/注册页面UI
+  - JWT token存储和自动刷新
+  - 认证状态管理（Zustand或Context）
+  - 受保护路由组件（ProtectedRoute）
+  - **工时**：1天
+  - **负责人**：前端开发
+
+- [ ] **T1.1.3** - UI设计系统搭建
   - 配置Shadcn/ui主题
   - 创建自定义颜色变量
   - 实现Layout组件（Header、Sidebar、Main）
@@ -92,8 +115,10 @@ Phase 4: 优化与上线 (2周)
 
 **Sprint 1.1交付物**：
 - ✅ 可运行的Next.js项目
-- ✅ 完整的OAuth认证流程
-- ✅ 初始化的IndexedDB数据库
+- ✅ 后端SQLite数据库（用户表 + 业务表）
+- ✅ 完整的用户认证系统（Google OAuth + JWT）
+- ✅ 用户权限和数据隔离中间件
+- ✅ 登录/注册页面和认证状态管理
 - ✅ 基础UI组件库
 
 ---
@@ -101,45 +126,62 @@ Phase 4: 优化与上线 (2周)
 #### Sprint 1.2: Offer管理功能 (Week 1, Day 4-5 + Week 2, Day 1-2)
 
 **任务清单**：
-- [ ] **T1.2.1** - Offer列表页面
+- [ ] **T1.2.1** - Offer后端API开发
+  - 实现Offers表CRUD API
+    - POST /api/offers - 创建Offer
+    - GET /api/offers - 获取Offer列表（支持分页、筛选、搜索）
+    - GET /api/offers/:id - 获取Offer详情
+    - PUT /api/offers/:id - 更新Offer
+    - DELETE /api/offers/:id - 删除Offer
+  - 实现user_id数据隔离验证
+  - 字段验证中间件（品牌名、URL、关键词）
+  - **工时**：1.5天
+  - **负责人**：后端开发
+
+- [ ] **T1.2.2** - Offer列表页面
   - 创建`/offers`页面
-  - 实现从IndexedDB读取Offers
+  - 调用GET /api/offers获取Offer列表
   - 显示卡片列表（品牌、描述、关键词、状态）
   - 实现筛选（状态、日期）和搜索
   - 添加"新建Offer"按钮
+  - 前端缓存策略（TanStack Query）
   - **工时**：1天
   - **负责人**：前端开发
 
-- [ ] **T1.2.2** - 创建Offer表单
+- [ ] **T1.2.3** - 创建Offer表单
   - 创建`/offers/new`页面
   - 实现表单组件（React Hook Form）
   - 字段验证（品牌名、产品描述、URL、关键词）
   - 关键词输入组件（支持添加、删除、分类）
-  - 保存到IndexedDB
+  - 调用POST /api/offers保存数据
+  - 错误处理和成功提示
   - **工时**：1.5天
   - **负责人**：前端开发
 
-- [ ] **T1.2.3** - Offer详情与编辑
+- [ ] **T1.2.4** - Offer详情与编辑
   - 创建`/offers/[id]`页面
-  - 展示Offer完整信息
+  - 调用GET /api/offers/:id获取Offer信息
   - 实现编辑模式切换
-  - 更新IndexedDB数据
-  - 添加删除确认对话框
+  - 调用PUT /api/offers/:id更新数据
+  - 添加删除确认对话框（调用DELETE API）
   - **工时**：1天
   - **负责人**：前端开发
 
-- [ ] **T1.2.4** - 关键词分类逻辑
+- [ ] **T1.2.5** - 关键词分类逻辑
   - 实现关键词自动分类算法（品牌/产品/长尾）
   - 品牌词 → EXACT
   - 产品词（2-3词）→ PHRASE
   - 长尾词（≥4词）→ BROAD
   - 支持用户手动覆盖分类
+  - 集成到Offer API（自动分类或手动覆盖）
   - **工时**：0.5天
   - **负责人**：后端开发
 
 **Sprint 1.2交付物**：
-- ✅ 完整的Offer CRUD功能
+- ✅ Offer后端API（CRUD + 数据隔离）
+- ✅ Offer前端CRUD页面（列表、创建、详情、编辑）
 - ✅ 关键词智能分类功能
+- ✅ API错误处理和缓存策略
 
 ---
 
@@ -157,7 +199,7 @@ Phase 4: 优化与上线 (2周)
   - **负责人**：后端开发
 
 - [ ] **T3.1.2** - AI模板生成（Fallback Level 2）
-  - 集成OpenAI API / Anthropic API
+  - 集成Gemini 2.5 API（主引擎） + Claude 4.5 API（备用）
   - 设计Prompt模板（基于行业生成内容摘要）
   - 实现JSON响应解析
   - 错误处理与重试逻辑
@@ -172,20 +214,32 @@ Phase 4: 优化与上线 (2周)
   - **工时**：2天
   - **负责人**：后端开发
 
-- [ ] **T3.1.4** - 创意生成UI
+- [ ] **T3.1.4** - 创意生成后端API
+  - POST /api/creatives/generate - 生成创意
+  - GET /api/creatives/:id - 获取创意详情
+  - PUT /api/creatives/:id - 更新创意内容
+  - POST /api/creatives/:id/score - 重新计算质量评分
+  - 存储到creative_versions表（SQLite）
+  - user_id数据隔离
+  - **工时**：1.5天
+  - **负责人**：后端开发
+
+- [ ] **T3.1.5** - 创意生成UI
   - 创建`/offers/[id]/generate-creative`页面
+  - 调用POST /api/creatives/generate触发生成
   - 显示生成进度（Level 1 → Level 2 → Level 3）
   - 展示生成结果（预览格式）
   - 显示质量评分（0-100分）
   - 添加"重新生成"按钮
-  - 支持编辑（inline editing）
+  - 支持编辑（inline editing）并调用PUT API
   - **工时**：1.5天
   - **负责人**：前端开发
 
 **Sprint 3.1交付物**：
 - ✅ 完整的AI创意生成服务（3级Fallback）
 - ✅ 质量评分系统
-- ✅ 创意生成与编辑UI
+- ✅ 创意生成后端API和前端UI
+- ✅ 创意版本存储（SQLite）
 
 ---
 
@@ -225,7 +279,57 @@ Phase 4: 优化与上线 (2周)
 
 ---
 
-#### Sprint 4: A/B测试与手动配置提示 (Week 4, Day 4-5)
+#### Sprint 3.3: Launch Score投放评分 (Week 4, Day 4-5)
+
+**背景**：PRD Section 3.10定义的核心功能，评估Offer投放成功概率（0-100分）
+
+**任务清单**：
+- [ ] **T3.3.1** - Keyword Planner API集成
+  - 实现Google Ads Keyword Planner API调用
+  - 获取关键词搜索量、CPC、竞争度数据
+  - 批量查询优化（一次查询多个关键词）
+  - 结果缓存策略（24小时）
+  - **工时**：1天
+  - **负责人**：后端开发
+
+- [ ] **T3.3.2** - Launch Score评分算法
+  - 实现5个维度评分算法：
+    1. 关键词质量分（30分）：搜索量、竞争度、相关性
+    2. 产品市场契合度（25分）：行业匹配、目标受众
+    3. 着陆页质量（20分）：页面速度、内容质量、移动友好
+    4. 预算竞争力（15分）：CPC vs 预算、市场竞争力
+    5. 广告内容潜力（10分）：创意质量评分、品牌一致性
+  - 加权计算总分（0-100分）
+  - 分级评定（A/B/C/D级）
+  - **工时**：1.5天
+  - **负责人**：后端开发
+
+- [ ] **T3.3.3** - Launch Score后端API
+  - POST /api/launch-scores/calculate - 计算Launch Score
+  - GET /api/launch-scores/:offer_id - 获取Offer的Launch Score
+  - 存储到launch_scores表（SQLite）
+  - 关联offer_id和user_id
+  - **工时**：1天
+  - **负责人**：后端开发
+
+- [ ] **T3.3.4** - Launch Score前端UI
+  - 在Offer详情页显示Launch Score卡片
+  - 展示总分、等级、5个维度细分
+  - 可视化图表（雷达图或柱状图）
+  - 显示改进建议（针对低分维度）
+  - "重新计算"按钮
+  - **工时**：1天
+  - **负责人**：前端开发
+
+**Sprint 3.3交付物**：
+- ✅ Keyword Planner API集成
+- ✅ Launch Score 5维度评分算法
+- ✅ Launch Score后端API和前端UI
+- ✅ 评分结果存储（SQLite）
+
+---
+
+#### Sprint 4: A/B测试与成本预估UI (Week 5, Day 1-2)
 
 **任务清单**：
 - [ ] **T4.1** - A/B测试变体生成
@@ -243,93 +347,118 @@ Phase 4: 优化与上线 (2周)
   - **工时**：0.5天
   - **负责人**：前端开发
 
-- [ ] **T4.3** - 成本预估
-  - 调用Google Ads Keyword Planner API
-  - 估算关键词CPC和预算消耗
-  - 显示预估花费和展示量
+- [ ] **T4.3** - 成本预估和ROI预测UI
+  - 在Offer详情页显示成本预估卡片
+  - 调用Keyword Planner API数据（复用Sprint 3.3）
+  - 显示预估花费、展示量、点击量
+  - ROI预测（基于行业平均转化率）
   - **工时**：1天
-  - **负责人**：后端开发
-
-- [ ] **T4.4** - ROI预测（简化版）
-  - 基于历史CTR和转化率（行业平均值）
-  - 计算预期点击量和转化量
-  - 显示预估ROI
-  - **工时**：0.5天
-  - **负责人**：后端开发
+  - **负责人**：前端开发
 
 **Sprint 4交付物**：
 - ✅ A/B测试变体创建功能
 - ✅ 手动配置指引
-- ✅ 成本预估与ROI预测
+- ✅ 成本预估与ROI预测UI
 
 ---
 
 **Phase 1 验收标准**：
-- [x] 用户可以创建Offer并管理关键词
-- [x] AI可以自动生成15个Headlines和4个Descriptions
+- [x] 用户认证系统完整（Google OAuth + JWT + 数据隔离）
+- [x] 用户可以创建Offer并管理关键词（后端API + SQLite存储）
+- [x] AI可以自动生成15个Headlines和4个Descriptions（3级Fallback）
 - [x] 质量评分达到60+分
+- [x] Launch Score功能完整（5维度评分 + A/B/C/D等级）
 - [x] 一键创建完整Campaign并成功上线到Google Ads
 - [x] 支持创建1-3个A/B测试变体
+- [x] 成本预估和ROI预测展示
 - [x] 提示用户手动上传Images和Logo
 
 ---
 
 ## 三、Phase 2: 数据同步与可视化 (3周)
 
-### Sprint 5: 数据同步服务 (Week 5)
+### Sprint 5: 数据同步服务 (Week 6)
 
 **任务清单**：
-- [ ] **T5.1** - 前端同步服务
-  - 实现`FrontendSyncService`类
-  - 同步触发逻辑（页面加载、手动刷新、定时5分钟）
+- [ ] **T5.1** - 后端数据同步服务
+  - 实现`DataSyncService`后端服务
   - 调用Google Ads API查询性能数据（GAQL）
-  - 批量写入IndexedDB
-  - 同步状态管理（Zustand）
+  - 批量写入SQLite数据库（campaign_performance表）
+  - 实现定时同步任务（cron: 每5分钟）
+  - 同步历史数据（90天）
   - **工时**：2天
+  - **负责人**：后端开发
+
+- [ ] **T5.1a** - 数据同步API
+  - POST /api/sync/trigger - 手动触发同步
+  - GET /api/sync/status - 获取同步状态
+  - GET /api/sync/logs - 获取同步日志
+  - user_id数据隔离（只同步用户自己的Campaigns）
+  - **工时**：1天
+  - **负责人**：后端开发
+
+- [ ] **T5.1b** - 前端同步状态管理
+  - 调用POST /api/sync/trigger手动触发同步
+  - 轮询GET /api/sync/status获取同步进度
+  - 同步状态管理（Zustand）
+  - 前端自动刷新逻辑（页面加载时检查同步）
+  - **工时**：1天
   - **负责人**：前端开发
 
 - [ ] **T5.2** - GAQL查询优化
   - 设计高效GAQL查询语句
   - 实现日期范围查询（昨天、近7天、近30天、近90天）
-  - 索引优化（by-account-date、by-campaign-date）
-  - 数据去重和更新逻辑
+  - SQLite索引优化（user_id + date, campaign_id + date）
+  - 数据去重和更新逻辑（upsert）
   - **工时**：1天
   - **负责人**：后端开发
 
 - [ ] **T5.3** - 数据保留策略
-  - 实现90天数据清理逻辑
-  - 定期清理过期数据（每次同步时检查）
-  - 显示存储空间占用
+  - 实现90天数据清理逻辑（后端定时任务）
+  - 定期清理过期数据（每天凌晨执行）
+  - 数据库存储空间监控
   - **工时**：0.5天
-  - **负责人**：前端开发
+  - **负责人**：后端开发
 
 - [ ] **T5.4** - 同步状态UI
-  - Header显示"最后同步时间"
+  - Header显示"最后同步时间"（从GET /api/sync/status获取）
   - 同步中显示Loading动画
   - 同步失败显示错误提示
-  - 手动刷新按钮
+  - 手动刷新按钮（调用POST /api/sync/trigger）
   - **工时**：0.5天
   - **负责人**：前端开发
 
-- [ ] **T5.5** - 同步日志记录
-  - 记录每次同步操作（时间、账号、记录数、状态）
-  - 存储到`sync_logs`表
-  - 创建同步历史页面（可选）
+- [ ] **T5.5** - 同步日志记录和展示
+  - 后端记录每次同步操作（时间、账号、记录数、状态）
+  - 存储到`sync_logs`表（SQLite）
+  - 前端创建同步历史页面（调用GET /api/sync/logs）
   - **工时**：1天
-  - **负责人**：前端开发
+  - **负责人**：后端开发 + 前端开发
 
 **Sprint 5交付物**：
-- ✅ 自动数据同步服务
-- ✅ 手动刷新功能
-- ✅ 90天数据保留策略
-- ✅ 同步状态可视化
+- ✅ 后端数据同步服务（定时 + 手动触发）
+- ✅ 数据同步API（trigger + status + logs）
+- ✅ 前端同步状态UI和手动刷新
+- ✅ 90天数据保留策略（后端定时清理）
+- ✅ 同步日志记录和展示（SQLite）
 
 ---
 
-### Sprint 6: Dashboard数据大盘 (Week 6-7)
+### Sprint 6: Dashboard数据大盘 (Week 7-8)
 
 **任务清单**：
-- [ ] **T6.1** - KPI卡片组件
+- [ ] **T6.1** - Dashboard数据聚合API
+  - GET /api/dashboard/kpis - 获取核心KPI指标（展示、点击、花费、转化）
+  - GET /api/dashboard/trends - 获取趋势数据（支持日期范围）
+  - GET /api/dashboard/campaigns - 获取Campaign列表（支持排序、筛选、分页）
+  - 从SQLite聚合性能数据（campaign_performance表）
+  - 计算总计、平均值、环比变化
+  - user_id数据隔离
+  - **工时**：2天
+  - **负责人**：后端开发
+
+- [ ] **T6.2** - KPI卡片组件
+  - 调用GET /api/dashboard/kpis获取指标数据
   - 设计4个核心指标卡片（展示、点击、花费、转化）
   - 显示数值和环比变化（+15% ↗）
   - 响应式布局（Grid 4列）
@@ -337,7 +466,8 @@ Phase 4: 优化与上线 (2周)
   - **工时**：1天
   - **负责人**：前端开发
 
-- [ ] **T6.2** - 趋势图表
+- [ ] **T6.3** - 趋势图表
+  - 调用GET /api/dashboard/trends获取趋势数据
   - 集成Recharts库
   - 实现折线图（展示、点击、花费趋势）
   - 支持日期范围切换（7天/30天/90天）
@@ -346,42 +476,41 @@ Phase 4: 优化与上线 (2周)
   - **工时**：1.5天
   - **负责人**：前端开发
 
-- [ ] **T6.3** - Campaign列表
+- [ ] **T6.4** - Campaign列表
+  - 调用GET /api/dashboard/campaigns获取列表数据
   - 显示所有Campaign的关键指标
   - 表格排序（按花费、点击、转化）
   - 筛选（状态、日期范围）
   - 搜索功能
   - 点击进入Campaign详情
+  - 前端分页和缓存（TanStack Query）
   - **工时**：1天
   - **负责人**：前端开发
 
-- [ ] **T6.4** - 智能洞察
-  - 分析数据并生成3-5条洞察
+- [ ] **T6.5** - 智能洞察
+  - 后端分析数据并生成3-5条洞察
   - 示例："Campaign A的CTR下降20%，建议优化创意"
   - 基于规则引擎（CTR异常、花费超标、转化率低）
-  - 显示为Alert卡片
+  - GET /api/dashboard/insights - 获取智能洞察API
+  - 前端显示为Alert卡片
   - **工时**：1.5天
-  - **负责人**：后端开发
-
-- [ ] **T6.5** - 数据聚合服务
-  - 从IndexedDB聚合性能数据
-  - 计算总计、平均值、环比
-  - 缓存聚合结果（TanStack Query）
-  - **工时**：1天
-  - **负责人**：前端开发
+  - **负责人**：后端开发 + 前端开发
 
 **Sprint 6交付物**：
-- ✅ 完整的Dashboard数据大盘
+- ✅ Dashboard数据聚合后端API（KPIs + Trends + Campaigns + Insights）
+- ✅ 完整的Dashboard数据大盘前端
 - ✅ KPI卡片 + 趋势图表 + Campaign列表
-- ✅ 智能洞察功能
+- ✅ 智能洞察功能（后端规则引擎 + 前端展示）
 
 ---
 
 **Phase 2 验收标准**：
-- [x] 数据自动同步（页面打开时 + 每5分钟）
-- [x] Dashboard显示完整KPI和趋势
-- [x] 智能洞察提供有价值的建议
-- [x] 90天历史数据可查询
+- [x] 后端数据自动同步（定时任务 + 手动触发）
+- [x] 数据同步API完整（trigger + status + logs）
+- [x] Dashboard显示完整KPI和趋势（后端聚合 + 前端展示）
+- [x] 智能洞察提供有价值的建议（规则引擎）
+- [x] 90天历史数据可查询（SQLite存储 + 定时清理）
+- [x] 所有数据基于user_id隔离
 
 ---
 
@@ -483,20 +612,20 @@ Phase 4: 优化与上线 (2周)
 
 **任务清单**：
 - [ ] **T9.1** - 性能优化
-  - 实现IndexedDB查询优化（索引使用）
-  - 大数据量分页加载
+  - 后端API响应优化（SQLite查询索引、连接池）
+  - 前端大数据量分页加载
   - 图片懒加载
   - Code Splitting（路由级别）
   - Bundle Size优化（<500KB）
   - **工时**：2天
-  - **负责人**：前端开发
+  - **负责人**：前端开发 + 后端开发
 
 - [ ] **T9.2** - 缓存策略
   - TanStack Query配置（staleTime、cacheTime）
-  - IndexedDB查询结果缓存
+  - API响应缓存（后端Redis或内存缓存）
   - Google Ads API响应缓存（1小时）
   - **工时**：1天
-  - **负责人**：前端开发
+  - **负责人**：前端开发 + 后端开发
 
 - [ ] **T9.3** - 错误边界和日志
   - 实现React Error Boundary
@@ -586,7 +715,7 @@ Phase 4: 优化与上线 (2周)
 | 风险项 | 概率 | 影响 | 缓解措施 |
 |--------|------|------|----------|
 | Google Ads API配额限制 | 中 | 高 | 实现智能缓存和批量操作，申请更高配额 |
-| IndexedDB存储限制 | 中 | 中 | 实现90天数据保留，提示用户定期导出 |
+| SQLite数据库性能 | 低 | 中 | 优化索引和查询，实现90天数据保留 |
 | AI API不稳定 | 高 | 中 | 3级Fallback策略，支持手动输入 |
 | OAuth Token过期 | 中 | 高 | 自动刷新机制，失效后提示重新授权 |
 | 浏览器兼容性问题 | 低 | 中 | 测试主流浏览器，提供降级方案 |
@@ -616,7 +745,7 @@ Phase 4: 优化与上线 (2周)
 
 | 角色 | 投入时间 | 关键职责 |
 |------|----------|----------|
-| 前端开发 | 12周 × 5天/周 | UI开发、IndexedDB、前端逻辑 |
+| 前端开发 | 12周 × 5天/周 | UI开发、API调用、前端逻辑 |
 | 后端开发 | 12周 × 5天/周 | API集成、AI服务、数据处理 |
 | UI/UX设计 | 6周 × 2.5天/周 | 界面设计、交互设计 |
 | QA测试 | 6周 × 2.5天/周 | 测试用例、质量保障 |
@@ -739,10 +868,13 @@ Phase 4: 优化与上线 (2周)
 ```
 Phase 1 Dependencies:
 T1.1.1 (项目初始化)
-  └─→ T1.1.2 (IndexedDB设置)
-  └─→ T1.1.3 (OAuth认证)
-  └─→ T1.1.4 (UI设计系统)
-      └─→ T1.2.1 (Offer列表)
+  └─→ T1.1.2 (后端SQLite数据库设置)
+  └─→ T1.1.2a (用户认证系统)
+  └─→ T1.1.2b (用户权限和数据隔离)
+  └─→ T1.1.2c (前端认证状态管理)
+  └─→ T1.1.3 (UI设计系统)
+      └─→ T1.2.1 (Offer后端API)
+          └─→ T1.2.2 (Offer列表)
           └─→ T1.2.2 (创建Offer)
               └─→ T1.2.4 (关键词分类)
               └─→ T3.1.1 (网站爬取)
