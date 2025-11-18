@@ -6,7 +6,7 @@
 
 ### 1. 数据同步任务
 **脚本**: `scripts/cron-sync-data.ts`
-**频率**: 每5分钟
+**频率**: 每6小时
 **功能**: 从Google Ads API拉取最新的Campaign性能数据
 
 ### 2. 数据清理任务
@@ -32,8 +32,8 @@ crontab -e
 
 3. **添加定时任务**
 ```bash
-# 每5分钟执行数据同步
-*/5 * * * * cd /path/to/autobb && npx tsx scripts/cron-sync-data.ts >> logs/sync.log 2>&1
+# 每6小时执行数据同步（0点、6点、12点、18点）
+0 */6 * * * cd /path/to/autobb && npx tsx scripts/cron-sync-data.ts >> logs/sync.log 2>&1
 
 # 每天凌晨2点执行数据清理
 0 2 * * * cd /path/to/autobb && npx tsx scripts/cron-cleanup-old-data.ts >> logs/cleanup.log 2>&1
@@ -61,7 +61,7 @@ module.exports = {
       script: 'scripts/cron-sync-data.ts',
       interpreter: 'npx',
       interpreter_args: 'tsx',
-      cron_restart: '*/5 * * * *',  // 每5分钟
+      cron_restart: '0 */6 * * *',  // 每6小时
       autorestart: false,
       watch: false,
     },
@@ -149,7 +149,7 @@ NODE_PATH=/path/to/node_modules */5 * * * * cd /path/to/autobb && npx tsx script
 
 ## 📈 性能优化建议
 
-1. **调整同步频率**: 根据实际需求调整5分钟间隔（可改为10分钟或30分钟）
+1. **调整同步频率**: 根据实际需求调整6小时间隔（可改为3小时或12小时）
 2. **错峰执行**: 避免在高峰期执行重任务
 3. **批量处理**: 一次同步多个用户，减少API调用次数
 4. **缓存优化**: 利用Google Ads API的缓存机制
