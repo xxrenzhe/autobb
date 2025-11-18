@@ -4,10 +4,10 @@
 
 ## 📊 总体进度
 
-- **当前阶段**: Phase 1 - MVP核心功能
-- **已完成Sprint**: 6个
-- **整体进度**: ~50% (6/12 sprints)
-- **预计完成**: Week 13 (剩余6个sprints)
+- **当前阶段**: Phase 2 - 数据同步与可视化
+- **已完成Sprint**: 7个
+- **整体进度**: ~58% (7/12 sprints)
+- **预计完成**: Week 13 (剩余5个sprints)
 
 ---
 
@@ -180,9 +180,43 @@ ALTER TABLE creatives ADD COLUMN last_sync_at TEXT;
 
 ---
 
+## ✅ 已完成Sprint（续）
+
+### Sprint 7: 数据同步服务 ✅
+
+**完成日期**: Week 6
+**Git Commit**: c94203d - fix: 调整数据同步频率
+
+**主要交付物**:
+- ✅ 后端数据同步服务（DataSyncService）
+- ✅ GAQL查询逻辑（从Google Ads API拉取性能数据）
+- ✅ sync_logs表（数据库表和索引）
+- ✅ 数据库迁移脚本
+- ✅ 数据同步API（trigger/status/logs）
+- ✅ 定时同步脚本（每6小时执行）
+- ✅ 90天数据保留策略（定时清理）
+- ✅ 定时任务配置文档（CRON_SETUP.md）
+- ✅ SyncStatus前端组件
+
+**核心功能**:
+- POST `/api/sync/trigger` - 手动触发同步
+- GET `/api/sync/status` - 获取同步状态
+- GET `/api/sync/logs` - 获取同步日志
+- `DataSyncService.syncPerformanceData()` - 核心同步逻辑
+- `DataSyncService.cleanupOldData()` - 数据清理
+
+**技术亮点**:
+- GAQL查询优化（支持日期范围过滤）
+- Upsert策略（INSERT ... ON CONFLICT UPDATE）
+- user_id数据隔离
+- Token自动刷新
+- 定时任务（cron/PM2）
+
+---
+
 ## 🚧 进行中Sprint
 
-### Sprint 7: Dashboard数据大盘 (In Planning)
+### Sprint 8: Dashboard数据大盘 (In Planning)
 
 **计划开始**: Week 7
 **预计完成**: Week 8
@@ -235,6 +269,10 @@ ALTER TABLE creatives ADD COLUMN last_sync_at TEXT;
 | M3 | 增强功能完成 | Week 11 | ⏳ 待开始 | 0% |
 | M4 | 生产就绪 | Week 13 | ⏳ 待开始 | 0% |
 
+**M2进度详情**:
+- ✅ Sprint 7: 数据同步服务（100%）
+- ⏳ Sprint 8: Dashboard数据大盘（0%）
+
 ---
 
 ## 📈 技术债务追踪
@@ -275,7 +313,13 @@ ALTER TABLE creatives ADD COLUMN last_sync_at TEXT;
 
 ## 📝 更新日志
 
-### 2025-11-18
+### 2025-11-18 (下午)
+- ✅ 完成Sprint 7：数据同步服务
+- 📝 添加DataSyncService + GAQL查询
+- 🔧 配置定时任务（每6小时同步）
+- 📊 M2里程碑进行中（50%完成）
+
+### 2025-11-18 (上午)
 - ✅ 完成Sprint 6：Creative同步到Google Ads
 - 📝 创建PROGRESS.md跟踪文档
 - 🎯 M1里程碑达成（MVP功能完成）
@@ -294,4 +338,4 @@ ALTER TABLE creatives ADD COLUMN last_sync_at TEXT;
 
 ---
 
-**下一步工作**: Sprint 7 - Dashboard数据大盘实现
+**下一步工作**: Sprint 8 - Dashboard数据大盘实现
