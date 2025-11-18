@@ -10,9 +10,15 @@
 9. 修复特定问题时，必须严格限制修改范围，只触碰与问题直接相关的代码，并在修改后立即验证所有核心功能是否正常
 10. secrets目录和其下的所有文件都不能上传Github，也不能打包进入镜像
 11. 切记不要上传敏感信息到Github
-12. 301跳转实现：使用Cloudflare CDN配置域名重定向（autoads.dev → www.autoads.dev），避免在应用层实现，遵循单一职责原则
-13. 代码分支和部署流程（Github Actions）
-   部署流程主要分两步，第一步：推送代码到Github，触发Github Actions，生成镜像；第二部：手动拉取镜像并部署到ClawCloud
-   - 代码推送到main分支，触发production环境镜像构建：标注 docker image tag 为 prod-latest 和 prod-[commitid]
-   - 当打了tag（如v3.0.0），触发production环境镜像构建：标注 docker image tag 为 prod-[tag] 和 prod-[commitid]
-   - 除了main分支外，不要创建额外的分支
+12. 每次更新后，都自动提交git commit，便于后续回滚恢复
+13. 301跳转实现：使用Cloudflare CDN配置域名重定向（autoads.dev → www.autoads.dev），避免在应用层实现，遵循单一职责原则
+14. 不同环境的域名
+- 测试环境域名：localhost
+- 生成环境域名：autoads.dev
+15. 代码结构是Monorepo，所有服务都需要部署在单个容器中，且对外只提供一个访问端口
+16. 阅读 docs/MONOREPO_BUILD_BEST_PRACTICES.md 文档，了解Monorepo构建最佳实践
+17. 代码分支和部署流程（Github Actions）
+部署流程主要分两步，第一步：推送代码到Github，触发Github Actions，生成镜像；第二部：手动拉取镜像并部署到ClawCloud
+- 代码推送到main分支，触发production环境镜像构建：标注 docker image tag 为 prod-latest 和 prod-[commitid]
+- 当打了tag（如v3.0.0），触发production环境镜像构建：标注 docker image tag 为 prod-[tag] 和 prod-[commitid]
+- 除了main分支外，不要创建额外的分支

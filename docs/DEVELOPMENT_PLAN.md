@@ -590,60 +590,33 @@ Phase 4: 优化与上线 (2周)
 
 ---
 
-### Sprint 8: 合规检查 + 优化建议 (Week 9-10)
+### Sprint 8: 合规检查 (Week 9-10)
 
 **任务清单**：
-- [ ] **T8.1** - 合规性检查规则引擎
+- [x] **T8.1** - 合规性检查规则引擎
   - 定义Google Ads政策违规规则（20+条）
   - 检查禁用词汇（夸大、绝对化、医疗声明）
   - 检查格式要求（大写、标点、符号）
   - 检查品牌一致性
   - **工时**：2天
   - **负责人**：后端开发
+  - **状态**：✅ 已完成
 
-- [ ] **T8.2** - 合规检查UI
+- [x] **T8.2** - 合规检查UI
   - 生成创意后自动检查
   - 显示违规项列表（严重性：高/中/低）
   - 提供修正建议
   - 一键修复（自动替换违规内容）
   - **工时**：1天
   - **负责人**：前端开发
+  - **状态**：✅ 已完成
 
-- [ ] **T8.3** - Google Ads Recommendations API集成
-  - 实现`RecommendationsService`后端服务
-  - 调用Google Ads Recommendations API获取建议
-  - 分类处理（关键词、创意、出价、预算、着陆页）
-  - 存储到`optimization_recommendations`表（SQLite）
-  - 实现建议应用逻辑（调用Google Ads API执行建议）
-  - user_id数据隔离
-  - 错误处理和重试机制
-  - **工时**：2天
-  - **负责人**：后端开发
-
-- [ ] **T8.3a** - 优化建议后端API
-  - GET /api/recommendations - 获取优化建议列表（支持筛选、分页）
-  - POST /api/recommendations/:id/apply - 应用建议
-  - POST /api/recommendations/:id/dismiss - 忽略建议
-  - GET /api/recommendations/stats - 获取建议统计
-  - 预估影响计算（基于历史数据和Google预估）
-  - **工时**：1天
-  - **负责人**：后端开发
-
-- [ ] **T8.4** - 优化建议UI
-  - 创建"优化建议"页面（调用GET /api/recommendations）
-  - 显示建议列表（类型、影响、操作）
-  - 预估影响展示（+15% 点击，+¥500 花费）
-  - 一键应用建议（调用POST /api/recommendations/:id/apply）
-  - 忽略/延后功能（调用POST /api/recommendations/:id/dismiss）
-  - 建议统计卡片（总数、已应用、已忽略）
-  - **工时**：1.5天
-  - **负责人**：前端开发
+**注意**：原计划的T8.3-T8.4（Google Ads Recommendations API集成）已移除，不再实施。
 
 **Sprint 8交付物**：
-- ✅ 合规性自动检查
-- ✅ Google Ads Recommendations API集成和后端API
-- ✅ 智能优化建议前端展示
-- ✅ 一键应用优化
+- ✅ 合规性自动检查（规则引擎 + API）
+- ✅ 合规检查UI组件（违规检测 + 自动修复）
+- ✅ 单元测试覆盖（20+ 测试用例）
 
 ---
 
@@ -729,12 +702,14 @@ Phase 4: 优化与上线 (2周)
 **Phase 3 验收标准**：
 - [x] 支持编辑所有创意内容
 - [x] 版本历史完整可追溯
-- [x] 自动检测政策违规
-- [x] 显示Google Ads官方优化建议
-- [x] Campaign对比视图完整可用
-- [x] 规则引擎能生成有价值的优化建议
-- [x] AI能学习历史高表现创意
-- [x] 每周优化清单自动生成
+- [x] 自动检测政策违规（20+规则）
+- [x] 合规检查UI完整可用
+- [ ] Campaign对比视图完整可用
+- [ ] 规则引擎能生成有价值的优化建议
+- [ ] AI能学习历史高表现创意
+- [ ] 每周优化清单自动生成
+
+**注意**：原计划的"显示Google Ads官方优化建议"功能已移除。
 
 ---
 
