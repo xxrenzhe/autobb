@@ -873,7 +873,86 @@ CREATE INDEX idx_rate_limits_blocked ON rate_limits(is_blocked, blocked_until);
 
 ---
 
-### ❌ 2.1.13 top_performing_creatives（已移除 - 用聚合查询替代）
+### 🆕 2.1.13 system_settings（系统配置表）
+
+**说明**：存储系统运行所需的所有配置项（Google Ads API、AI配置、代理配置等）
+
+```sql
+CREATE TABLE system_settings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER,                           -- 用户ID（NULL表示全局配置）
+
+  -- 配置项标识
+  category TEXT NOT NULL,                    -- 配置分类：'google_ads' | 'ai' | 'proxy' | 'system'
+  config_key TEXT NOT NULL,                  -- 配置键名
+  config_value TEXT,                         -- 配置值（明文）
+  encrypted_value TEXT,                      -- 加密配置值（敏感信息）
+
+  -- 元数据
+  data_type TEXT NOT NULL DEFAULT 'string',  -- 数据类型：'string' | 'number' | 'boolean' | 'json'
+  is_sensitive INTEGER NOT NULL DEFAULT 0,   -- 是否敏感信息：1=是（使用encrypted_value）, 0=否
+  is_required INTEGER NOT NULL DEFAULT 0,    -- 是否必填配置：1=是, 0=否
+
+  -- 验证和状态
+  validation_status TEXT,                    -- 验证状态：'valid' | 'invalid' | 'pending' | null
+  validation_message TEXT,                   -- 验证结果消息
+  last_validated_at TEXT,                    -- 最后验证时间
+
+  -- 默认值
+  default_value TEXT,                        -- 默认值
+  description TEXT,                          -- 配置说明
+
+  -- 时间戳
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX idx_system_settings_user_category_key
+  ON system_settings(user_id, category, config_key);
+CREATE INDEX idx_system_settings_category ON system_settings(category);
+CREATE INDEX idx_system_settings_required ON system_settings(is_required);
+```
+
+**核心配置项示例**：
+
+**Google Ads API配置** (category='google_ads'):
+- `developer_token` - Developer Token（敏感信息）
+- `client_id` - Client ID
+- `client_secret` - Client Secret（敏感信息）
+- `refresh_token` - Refresh Token（敏感信息）
+- `customer_id` - 默认Customer ID
+
+**AI配置** (category='ai'):
+- `gemini_api_key` - Gemini 2.5 API Key（敏感信息）
+- `gemini_model` - Gemini模型名称（默认：gemini-2.5-flash）
+- `claude_api_key` - Claude 4.5 API Key（敏感信息，备用）
+- `claude_model` - Claude模型名称（默认：claude-sonnet-4.5）
+
+**代理配置** (category='proxy'):
+- `proxy_url` - 代理服务器URL
+- `proxy_enabled` - 是否启用代理（boolean）
+
+**系统配置** (category='system'):
+- `default_currency` - 默认货币（默认：CNY）
+- `default_language` - 默认语言（默认：zh-CN）
+- `sync_interval_minutes` - 数据同步间隔（默认：5）
+
+**安全措施**：
+- 敏感信息使用AES-256-GCM加密存储在`encrypted_value`字段
+- 加密密钥从环境变量读取（`ENCRYPTION_KEY`）
+- 普通配置存储在`config_value`字段（明文）
+- 支持用户级配置（user_id不为NULL）和全局配置（user_id为NULL）
+
+**验证机制**：
+- 配置项修改后自动触发验证（测试API连接、验证API key有效性）
+- 验证结果存储在`validation_status`和`validation_message`字段
+- 前端根据验证状态显示配置项状态（✅ 已配置/❌ 验证失败/⏳ 待验证）
+
+---
+
+### ❌ 2.1.14 top_performing_creatives（已移除 - 用聚合查询替代）
 
 **移除原因**：
 - AI学习功能属于高级特性，MVP阶段非核心需求
@@ -1396,7 +1475,583 @@ ENABLE_AUTO_BACKUP=true
 
 ---
 
+## 9. 一键调整CPC技术方案
+
+### 9.1 功能概述
+
+**目标**：用户在Offer列表页点击"调整CPC"按钮，批量调整该Offer关联的所有Campaign的CPC出价。
+
+**核心特性**：
+- 支持3种调整方式：按百分比增加、按百分比降低、设置固定值
+- 批量调整（一次调整该Offer的所有Campaign）
+- 实时预览调整结果
+- 调整限制：单日最多3次，CPC范围¥0.10-¥100.00
+- 调整记录持久化（用于限制和审计）
+
+### 9.2 数据库设计
+
+**新增表：cpc_adjustment_history**
+
+```sql
+CREATE TABLE cpc_adjustment_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  offer_id INTEGER NOT NULL,
+
+  -- 调整参数
+  adjustment_type TEXT NOT NULL,             -- 调整类型：'increase_percent' | 'decrease_percent' | 'fixed_value'
+  adjustment_value REAL NOT NULL,            -- 调整数值（百分比或固定值）
+
+  -- 影响范围
+  affected_campaign_count INTEGER NOT NULL,  -- 影响的Campaign数量
+  campaign_ids TEXT NOT NULL,                -- 影响的Campaign ID列表（JSON数组）
+
+  -- 调整结果
+  success_count INTEGER NOT NULL DEFAULT 0,  -- 成功调整的Campaign数量
+  failure_count INTEGER NOT NULL DEFAULT 0,  -- 失败的Campaign数量
+  error_message TEXT,                        -- 错误信息（如果有）
+
+  -- 时间戳
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (offer_id) REFERENCES offers(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_cpc_history_user_offer ON cpc_adjustment_history(user_id, offer_id);
+CREATE INDEX idx_cpc_history_created ON cpc_adjustment_history(created_at);
+```
+
+### 9.3 API设计
+
+#### 9.3.1 预览CPC调整
+
+**端点**: `POST /api/offers/:offerId/preview-cpc-adjustment`
+
+**请求体**:
+```json
+{
+  "adjustment_type": "increase_percent",
+  "adjustment_value": 15
+}
+```
+
+**响应**:
+```json
+{
+  "preview": [
+    {
+      "campaign_id": 123,
+      "campaign_name": "Nike跑鞋-品牌",
+      "current_cpc": 5.20,
+      "new_cpc": 5.98,
+      "change_percent": 15,
+      "is_valid": true
+    },
+    {
+      "campaign_id": 124,
+      "campaign_name": "Nike跑鞋-功能",
+      "current_cpc": 4.80,
+      "new_cpc": 5.52,
+      "change_percent": 15,
+      "is_valid": true
+    }
+  ],
+  "total_campaigns": 2,
+  "daily_adjustment_count": 0,
+  "daily_limit": 3,
+  "can_adjust": true
+}
+```
+
+#### 9.3.2 执行CPC调整
+
+**端点**: `POST /api/offers/:offerId/adjust-cpc`
+
+**请求体**:
+```json
+{
+  "adjustment_type": "increase_percent",
+  "adjustment_value": 15
+}
+```
+
+**响应**:
+```json
+{
+  "success": true,
+  "affected_campaigns": 2,
+  "success_count": 2,
+  "failure_count": 0,
+  "results": [
+    {
+      "campaign_id": 123,
+      "campaign_name": "Nike跑鞋-品牌",
+      "old_cpc": 5.20,
+      "new_cpc": 5.98,
+      "success": true
+    },
+    {
+      "campaign_id": 124,
+      "campaign_name": "Nike跑鞋-功能",
+      "old_cpc": 4.80,
+      "new_cpc": 5.52,
+      "success": true
+    }
+  ]
+}
+```
+
+### 9.4 业务逻辑
+
+**调整限制检查**：
+```typescript
+// 1. 检查单日调整次数
+const todayAdjustments = await db.query(`
+  SELECT COUNT(*) as count
+  FROM cpc_adjustment_history
+  WHERE user_id = ? AND offer_id = ?
+    AND DATE(created_at) = DATE('now')
+`, [userId, offerId]);
+
+if (todayAdjustments.count >= 3) {
+  throw new Error('今日调整次数已达上限（3次）');
+}
+
+// 2. 验证CPC范围
+const newCpc = calculateNewCpc(currentCpc, adjustmentType, adjustmentValue);
+if (newCpc < 0.10 || newCpc > 100.00) {
+  throw new Error(`CPC必须在¥0.10-¥100.00范围内`);
+}
+```
+
+**Google Ads API调用**：
+```typescript
+// 批量更新Campaign CPC
+for (const campaign of campaigns) {
+  const newCpc = calculateNewCpc(
+    campaign.target_cpc,
+    adjustmentType,
+    adjustmentValue
+  );
+
+  await googleAdsClient.campaignService.mutate({
+    customerId: campaign.customer_id,
+    operations: [{
+      update: {
+        resourceName: campaign.resource_name,
+        maximizeConversions: {
+          targetCpa: newCpc * 1000000  // 转换为微单位（micros）
+        }
+      },
+      updateMask: {
+        paths: ['maximize_conversions.target_cpa']
+      }
+    }]
+  });
+
+  // 更新本地数据库
+  await db.run(`
+    UPDATE campaigns
+    SET target_cpc = ?, updated_at = datetime('now')
+    WHERE id = ?
+  `, [newCpc, campaign.id]);
+}
+```
+
+**调整记录持久化**：
+```typescript
+await db.run(`
+  INSERT INTO cpc_adjustment_history
+    (user_id, offer_id, adjustment_type, adjustment_value,
+     affected_campaign_count, campaign_ids, success_count, failure_count)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+`, [
+  userId,
+  offerId,
+  adjustmentType,
+  adjustmentValue,
+  campaigns.length,
+  JSON.stringify(campaigns.map(c => c.id)),
+  successCount,
+  failureCount
+]);
+```
+
+### 9.5 前端UI设计
+
+**弹窗组件** (参考 PRODUCT_DESIGN.md "CPC调整弹窗设计"):
+- 调整方式选择（单选：提高/降低/固定值）
+- 调整幅度输入（数字输入框 + 单位显示）
+- 实时预览表格（Campaign名称、当前CPC、调整后CPC、变化）
+- 注意事项提示（单日限制、CPC范围）
+- 确认/取消按钮
+
+**状态管理**:
+```typescript
+interface CpcAdjustmentState {
+  adjustmentType: 'increase_percent' | 'decrease_percent' | 'fixed_value';
+  adjustmentValue: number;
+  preview: CampaignCpcPreview[];
+  canAdjust: boolean;
+  dailyAdjustmentCount: number;
+  isLoading: boolean;
+}
+```
+
+---
+
+## 10. 风险提示技术方案
+
+### 10.1 功能概述
+
+**目标**：在Dashboard数据大盘增加"风险提示"板块，实时监控推广链接有效性和Google Ads账号状态。
+
+**核心特性**：
+- 每日自动检测推广链接有效性
+- 每日检测Google Ads账号状态
+- 真实环境测试（使用代理模拟目标国家访问）
+- 智能验证（验证跳转页面是否包含正确品牌信息）
+- 风险分级：critical（严重）/ warning（警告）/ info（提示）
+- 历史记录保留
+
+### 10.2 数据库设计
+
+**新增表：risk_alerts**
+
+```sql
+CREATE TABLE risk_alerts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+
+  -- 风险基本信息
+  risk_type TEXT NOT NULL,                   -- 风险类型：'link_failure' | 'account_suspended' | 'budget_low'
+  severity TEXT NOT NULL,                    -- 严重程度：'critical' | 'warning' | 'info'
+  title TEXT NOT NULL,                       -- 风险标题
+  message TEXT NOT NULL,                     -- 详细说明
+
+  -- 关联对象
+  related_type TEXT,                         -- 关联对象类型：'offer' | 'campaign' | 'account'
+  related_id INTEGER,                        -- 关联对象ID
+  related_name TEXT,                         -- 关联对象名称
+
+  -- 状态
+  status TEXT NOT NULL DEFAULT 'active',     -- 状态：'active' | 'resolved' | 'ignored'
+  resolved_at TEXT,                          -- 解决时间
+  resolved_by INTEGER,                       -- 解决人user_id
+
+  -- 时间戳
+  detected_at TEXT NOT NULL DEFAULT (datetime('now')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (resolved_by) REFERENCES users(id)
+);
+
+CREATE INDEX idx_risk_alerts_user_status ON risk_alerts(user_id, status);
+CREATE INDEX idx_risk_alerts_severity ON risk_alerts(severity);
+CREATE INDEX idx_risk_alerts_detected ON risk_alerts(detected_at);
+CREATE INDEX idx_risk_alerts_related ON risk_alerts(related_type, related_id);
+```
+
+**新增表：link_check_history**
+
+```sql
+CREATE TABLE link_check_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  offer_id INTEGER NOT NULL,
+
+  -- 检测结果
+  is_accessible INTEGER NOT NULL,            -- 是否可访问：1=是, 0=否
+  http_status_code INTEGER,                  -- HTTP状态码
+  response_time_ms INTEGER,                  -- 响应时间（毫秒）
+
+  -- 内容验证
+  brand_found INTEGER,                       -- 是否找到品牌信息：1=是, 0=否, NULL=未检测
+  content_valid INTEGER,                     -- 内容是否有效：1=是, 0=否, NULL=未检测
+  validation_message TEXT,                   -- 验证结果消息
+
+  -- 代理信息
+  proxy_used TEXT,                           -- 使用的代理URL
+  target_country TEXT,                       -- 目标国家代码
+
+  -- 错误信息
+  error_message TEXT,                        -- 错误信息（如果有）
+
+  -- 时间戳
+  checked_at TEXT NOT NULL DEFAULT (datetime('now')),
+
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (offer_id) REFERENCES offers(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_link_check_user_offer ON link_check_history(user_id, offer_id);
+CREATE INDEX idx_link_check_checked_at ON link_check_history(checked_at);
+CREATE INDEX idx_link_check_accessible ON link_check_history(is_accessible);
+```
+
+### 10.3 API设计
+
+#### 10.3.1 获取风险提示列表
+
+**端点**: `GET /api/risk-alerts`
+
+**查询参数**:
+- `severity`: 过滤严重程度（可选）
+- `status`: 过滤状态（默认：active）
+- `limit`: 返回数量（默认：10）
+
+**响应**:
+```json
+{
+  "alerts": [
+    {
+      "id": 1,
+      "risk_type": "link_failure",
+      "severity": "critical",
+      "title": "推广链接失效",
+      "message": "Offer \"Nike跑鞋春季促销\" 的推广链接无法访问（HTTP 404）",
+      "related_type": "offer",
+      "related_id": 123,
+      "related_name": "Nike跑鞋春季促销",
+      "detected_at": "2025-01-18T02:15:00Z",
+      "status": "active"
+    }
+  ],
+  "total": 3,
+  "critical_count": 1,
+  "warning_count": 2,
+  "info_count": 0
+}
+```
+
+#### 10.3.2 标记风险为已解决
+
+**端点**: `PATCH /api/risk-alerts/:alertId/resolve`
+
+**响应**:
+```json
+{
+  "success": true,
+  "alert_id": 1,
+  "status": "resolved",
+  "resolved_at": "2025-01-18T10:30:00Z"
+}
+```
+
+#### 10.3.3 手动触发链接检测
+
+**端点**: `POST /api/offers/:offerId/check-link`
+
+**响应**:
+```json
+{
+  "success": true,
+  "is_accessible": false,
+  "http_status_code": 404,
+  "error_message": "推广链接返回404错误",
+  "checked_at": "2025-01-18T10:35:00Z"
+}
+```
+
+### 10.4 业务逻辑
+
+**定时任务：每日链接检测**
+
+```typescript
+// cron: 每天凌晨2点执行
+async function dailyLinkCheck() {
+  const offers = await db.query(`
+    SELECT id, user_id, affiliate_link, brand_name, country_code
+    FROM offers
+    WHERE status = 'active'
+  `);
+
+  for (const offer of offers) {
+    try {
+      // 1. 使用代理模拟目标国家访问
+      const proxyConfig = await getProxyForCountry(offer.country_code);
+
+      // 2. 访问推广链接
+      const response = await fetch(offer.affiliate_link, {
+        ...proxyConfig,
+        timeout: 10000,
+        redirect: 'follow'
+      });
+
+      const isAccessible = response.status === 200;
+      const htmlContent = await response.text();
+
+      // 3. 验证品牌信息
+      const brandFound = htmlContent.toLowerCase().includes(
+        offer.brand_name.toLowerCase()
+      );
+
+      // 4. 记录检测历史
+      await db.run(`
+        INSERT INTO link_check_history
+          (user_id, offer_id, is_accessible, http_status_code,
+           response_time_ms, brand_found, content_valid, proxy_used, target_country)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        offer.user_id,
+        offer.id,
+        isAccessible ? 1 : 0,
+        response.status,
+        response.responseTime,
+        brandFound ? 1 : 0,
+        (isAccessible && brandFound) ? 1 : 0,
+        proxyConfig.url,
+        offer.country_code
+      ]);
+
+      // 5. 如果检测失败，创建风险提示
+      if (!isAccessible || !brandFound) {
+        await createRiskAlert({
+          userId: offer.user_id,
+          riskType: 'link_failure',
+          severity: 'critical',
+          title: '推广链接失效',
+          message: !isAccessible
+            ? `Offer "${offer.name}" 的推广链接无法访问（HTTP ${response.status}）`
+            : `Offer "${offer.name}" 的推广链接可访问，但未找到品牌信息`,
+          relatedType: 'offer',
+          relatedId: offer.id,
+          relatedName: offer.name
+        });
+      }
+
+    } catch (error) {
+      // 记录检测错误
+      await db.run(`
+        INSERT INTO link_check_history
+          (user_id, offer_id, is_accessible, error_message, target_country)
+        VALUES (?, ?, 0, ?, ?)
+      `, [offer.user_id, offer.id, error.message, offer.country_code]);
+
+      await createRiskAlert({
+        userId: offer.user_id,
+        riskType: 'link_failure',
+        severity: 'critical',
+        title: '推广链接检测失败',
+        message: `Offer "${offer.name}" 链接检测失败：${error.message}`,
+        relatedType: 'offer',
+        relatedId: offer.id,
+        relatedName: offer.name
+      });
+    }
+  }
+}
+```
+
+**Google Ads账号状态检测**:
+```typescript
+async function checkGoogleAdsAccountStatus(userId: number) {
+  const accounts = await db.query(`
+    SELECT * FROM google_ads_accounts
+    WHERE user_id = ?
+  `, [userId]);
+
+  for (const account of accounts) {
+    try {
+      // 调用Google Ads API获取账号状态
+      const accountInfo = await googleAdsClient.customerService.getCustomer({
+        customerId: account.customer_id
+      });
+
+      // 检查账号是否被暂停
+      if (accountInfo.status === 'SUSPENDED') {
+        await createRiskAlert({
+          userId,
+          riskType: 'account_suspended',
+          severity: 'critical',
+          title: 'Google Ads账号被暂停',
+          message: `账号 ${account.customer_id} 已被暂停投放`,
+          relatedType: 'account',
+          relatedId: account.id,
+          relatedName: account.descriptive_name
+        });
+      }
+
+      // 检查预算是否不足
+      if (accountInfo.availableBudget < 100) {
+        await createRiskAlert({
+          userId,
+          riskType: 'budget_low',
+          severity: 'warning',
+          title: 'Google Ads账号预算不足',
+          message: `账号 ${account.customer_id} 剩余预算仅 ¥${accountInfo.availableBudget}`,
+          relatedType: 'account',
+          relatedId: account.id,
+          relatedName: account.descriptive_name
+        });
+      }
+
+    } catch (error) {
+      await createRiskAlert({
+        userId,
+        riskType: 'account_suspended',
+        severity: 'critical',
+        title: 'Google Ads账号状态检测失败',
+        message: `无法获取账号 ${account.customer_id} 的状态：${error.message}`,
+        relatedType: 'account',
+        relatedId: account.id,
+        relatedName: account.descriptive_name
+      });
+    }
+  }
+}
+```
+
+### 10.5 前端UI设计
+
+**Dashboard风险提示板块** (参考 RISK_ALERT_DESIGN.md):
+- 风险提示卡片（红色=critical，黄色=warning，蓝色=info）
+- 风险类型图标（链接失效、账号暂停、预算不足）
+- 详细说明和相关对象链接
+- 操作按钮（标记已解决、忽略、查看详情）
+- 历史记录查看
+
+**风险提示组件**:
+```typescript
+interface RiskAlertProps {
+  alert: RiskAlert;
+  onResolve: (alertId: number) => void;
+  onIgnore: (alertId: number) => void;
+}
+
+const RiskAlertCard: React.FC<RiskAlertProps> = ({ alert, onResolve, onIgnore }) => {
+  const severityColor = {
+    critical: 'bg-red-50 border-red-500',
+    warning: 'bg-yellow-50 border-yellow-500',
+    info: 'bg-blue-50 border-blue-500'
+  }[alert.severity];
+
+  return (
+    <div className={`border-l-4 p-4 ${severityColor}`}>
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <h4 className="font-semibold">{alert.title}</h4>
+          <p className="text-sm text-gray-600">{alert.message}</p>
+          <div className="mt-2 text-xs text-gray-500">
+            检测时间: {formatDate(alert.detected_at)}
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => onResolve(alert.id)}>标记已解决</button>
+          <button onClick={() => onIgnore(alert.id)}>忽略</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+```
+
+---
+
 **文档版本**: v2.0
-**最后更新**: 2025-01-17
+**最后更新**: 2025-01-18
 **作者**: AutoAds Engineering Team
 **状态**: ✅ Ready for Implementation
