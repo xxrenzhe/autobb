@@ -113,13 +113,31 @@ Phase 4: 优化与上线 (2周)
   - **工时**：1天
   - **负责人**：UI/UX + 前端开发
 
+- [ ] **T1.1.4** - 系统配置管理（参考SETTINGS_PAGE_DESIGN.md）
+  - 在TECHNICAL_SPEC添加system_settings表（已完成）
+  - 实现系统配置后端API
+    - GET /api/settings - 获取所有配置项
+    - PUT /api/settings/:category/:key - 更新配置项
+    - POST /api/settings/validate - 验证配置（测试API连接）
+  - 敏感信息加密存储（AES-256-GCM）
+  - 实现配置验证逻辑（Google Ads API连接测试、AI API key验证）
+  - 前端配置页面UI（参考SETTINGS_PAGE_DESIGN.md）
+    - Google Ads API配置（Developer Token、Client ID、Client Secret等）
+    - AI配置（Gemini + Claude API keys）
+    - 代理配置
+    - 系统配置（货币、语言、同步间隔）
+  - 配置状态指示（✅ 已配置/❌ 验证失败/⏳ 待验证）
+  - **工时**：2.5天
+  - **负责人**：后端开发（1.5天）+ 前端开发（1天）
+
 **Sprint 1.1交付物**：
 - ✅ 可运行的Next.js项目
-- ✅ 后端SQLite数据库（用户表 + 业务表）
+- ✅ 后端SQLite数据库（用户表 + 业务表 + 系统配置表）
 - ✅ 完整的用户认证系统（Google OAuth + JWT）
 - ✅ 用户权限和数据隔离中间件
 - ✅ 登录/注册页面和认证状态管理
 - ✅ 基础UI组件库
+- ✅ 系统配置管理页面（Google Ads API、AI、代理配置）
 
 ---
 
@@ -548,10 +566,27 @@ Phase 4: 优化与上线 (2周)
   - **工时**：1天
   - **负责人**：前端开发
 
+- [ ] **T7.5** - 一键调整CPC（参考TECHNICAL_SPEC Section 9）
+  - 在TECHNICAL_SPEC添加cpc_adjustment_history表（已完成）
+  - 实现CPC调整后端API
+    - POST /api/offers/:offerId/preview-cpc-adjustment - 预览调整结果
+    - POST /api/offers/:offerId/adjust-cpc - 执行CPC调整
+  - 调整限制检查（单日最多3次，CPC范围¥0.10-¥100.00）
+  - Google Ads API集成（批量更新Campaign CPC）
+  - 调整记录持久化
+  - 前端CPC调整弹窗UI（参考PRODUCT_DESIGN.md）
+    - 调整方式选择（提高/降低/固定值）
+    - 调整幅度输入
+    - 实时预览表格（Campaign名称、当前CPC、调整后CPC）
+    - 注意事项提示
+  - **工时**：2天
+  - **负责人**：后端开发（1天）+ 前端开发（1天）
+
 **Sprint 7交付物**：
 - ✅ 内容inline编辑功能
 - ✅ 完整的版本管理系统
 - ✅ 版本对比与回滚
+- ✅ 一键调整CPC功能
 
 ---
 
@@ -660,11 +695,34 @@ Phase 4: 优化与上线 (2周)
   - **工时**：1天
   - **负责人**：后端开发 + 前端开发
 
+- [ ] **T9.6** - 风险提示功能（参考RISK_ALERT_DESIGN.md和TECHNICAL_SPEC Section 10）
+  - 在TECHNICAL_SPEC添加risk_alerts和link_check_history表（已完成）
+  - 实现风险提示后端API
+    - GET /api/risk-alerts - 获取风险提示列表
+    - PATCH /api/risk-alerts/:id/resolve - 标记已解决
+    - POST /api/offers/:offerId/check-link - 手动触发链接检测
+  - 每日链接检测定时任务（每天凌晨2点）
+    - 使用代理模拟目标国家访问
+    - 验证推广链接有效性（HTTP状态码）
+    - 验证跳转页面是否包含正确品牌信息
+    - 记录检测历史到link_check_history表
+    - 检测失败时创建风险提示
+  - Google Ads账号状态检测
+    - 检查账号是否被暂停
+    - 检查预算是否不足
+  - Dashboard风险提示板块UI
+    - 风险提示卡片（红色=critical，黄色=warning，蓝色=info）
+    - 风险类型图标
+    - 操作按钮（标记已解决、忽略、查看详情）
+  - **工时**：2.5天
+  - **负责人**：后端开发（1.5天）+ 前端开发（1天）
+
 **Sprint 9交付物**：
 - ✅ Campaign对比视图（后端API + 前端UI）
 - ✅ 规则引擎实现
 - ✅ AI学习历史创意功能
 - ✅ 每周优化清单（定时任务 + 前端展示）
+- ✅ 风险提示功能（链接检测 + 账号状态检测 + Dashboard展示）
 
 ---
 
@@ -725,13 +783,23 @@ Phase 4: 优化与上线 (2周)
 ### Sprint 11: 生产部署 + 文档完善 (Week 12)
 
 **任务清单**：
-- [ ] **T11.1** - 数据导出/导入功能
-  - 后端实现完整数据导出API（JSON格式，包含所有用户数据）
-  - 后端实现数据导入与合并逻辑（验证user_id）
-  - 数据完整性验证（Schema验证）
-  - 前端UI提示（定期备份建议）
-  - **工时**：1.5天
-  - **负责人**：后端开发 + 前端开发
+- [ ] **T11.1** - 数据导出/导入功能（参考BATCH_IMPORT_DESIGN.md）
+  - **数据导出**：
+    - 后端实现完整数据导出API（JSON格式，包含所有用户数据）
+    - 前端导出UI（定期备份建议）
+  - **批量导入Offer功能**（参考BATCH_IMPORT_DESIGN.md详细设计）：
+    - CSV标准模板生成和下载（4个核心字段：产品页URL、品牌、国家、推广链接）
+    - CSV解析和验证逻辑（逐行验证，错误行跳过）
+    - 导入预览功能（显示解析结果和验证错误）
+    - 详细错误报告（逐行错误信息）
+    - 异步抓取处理（后台自动抓取产品信息和语言检测）
+    - 部分导入支持（有效行导入成功，错误行跳过）
+    - 导入进度展示（已导入/总数/失败数）
+  - **数据导入**：
+    - 后端实现数据导入与合并逻辑（验证user_id）
+    - 数据完整性验证（Schema验证）
+  - **工时**：3天（从1.5天增加）
+  - **负责人**：后端开发（2天）+ 前端开发（1天）
 
 - [ ] **T11.2** - 生产环境配置（Docker + GitHub Actions + ClawCloud）
   - Dockerfile多阶段构建配置（前端 + 后端）
@@ -847,18 +915,22 @@ Phase 4: 优化与上线 (2周)
 
 | 阶段 | 工时估算 | 日历时间 | 主要增加项 |
 |------|----------|----------|-----------|
-| Phase 1 | 105人日 | 5周 | +用户认证(6天) +Launch Score(4.5天) +后端API(15天) |
+| Phase 1 | 107.5人日 | 5周 | +用户认证(6天) +Launch Score(4.5天) +系统配置管理(2.5天) +后端API(15天) |
 | Phase 2 | 55人日 | 3周 | +后端数据同步(4天) +Dashboard后端API(2天) |
-| Phase 3 | 60人日 | 3周 | +数据驱动优化(7天) +Recommendations API(3天) |
-| Phase 4 | 30人日 | 2周 | 无变化 |
-| **总计** | **250人日** | **13周** | **+50人日（后端工时增加25%）** |
+| Phase 3 | 64.5人日 | 3周 | +数据驱动优化(7天) +Recommendations API(3天) +一键调整CPC(2天) +风险提示(2.5天) |
+| Phase 4 | 31.5人日 | 2周 | +批量导入Offer增强(1.5天) |
+| **总计** | **258.5人日** | **13周** | **+58.5人日（后端工时增加约30%）** |
 
 **工时增加说明**：
 - 用户认证系统：6天（Google OAuth + JWT + 数据隔离）
+- 系统配置管理：2.5天（Google Ads API、AI、代理配置）
 - 后端API开发：每个功能增加后端API层（约40%工时增加）
 - Launch Score功能：4.5天（Keyword Planner API + 5维度评分）
 - 数据驱动优化：7天（Campaign对比 + 规则引擎 + 每周清单）
 - Recommendations API：3天（Google Ads API集成 + 后端API + 前端）
+- 一键调整CPC：2天（后端API + 前端弹窗）
+- 风险提示功能：2.5天（链接检测 + 账号状态检测 + Dashboard展示）
+- 批量导入Offer增强：1.5天（CSV模板 + 导入预览 + 错误报告）
 
 ---
 
@@ -991,7 +1063,7 @@ T8.3 (Recommendations API)
 
 1. **4个阶段**：MVP（5周）→ 数据能力（3周）→ 增强功能（3周）→ 优化上线（2周）
 2. **11个Sprint**：明确交付物和验收标准
-3. **100+个任务**：详细时间估算和责任人
+3. **110+个任务**：详细时间估算和责任人（新增4个关键任务）
 4. **风险管理**：识别12项关键风险并制定缓解措施
 5. **质量保证**：完整的测试策略和发布检查清单
 
@@ -1003,12 +1075,16 @@ T8.3 (Recommendations API)
 
 **核心功能**：
 - ✅ 用户认证与数据隔离（Sprint 1）
+- ✅ 系统配置管理（Sprint 1.1.4）
 - ✅ Offer管理和AI创意生成（Sprint 1-3）
 - ✅ Launch Score投放评分（Sprint 3.3）
 - ✅ Campaign自动化创建（Sprint 3-4）
 - ✅ 数据同步与Dashboard（Sprint 5-6）
-- ✅ 数据驱动优化（Sprint 9）
+- ✅ 一键调整CPC（Sprint 7.5）
 - ✅ 合规检查与优化建议（Sprint 8）
+- ✅ 数据驱动优化（Sprint 9）
+- ✅ 风险提示功能（Sprint 9.6）
+- ✅ 批量导入Offer（Sprint 11.1）
 
 关键成功因素：
 - ✅ 严格的进度管理和风险控制
@@ -1017,5 +1093,5 @@ T8.3 (Recommendations API)
 - ✅ 及时的沟通和问题解决
 - ✅ 用户反馈驱动的迭代优化
 
-**总工时**：250人日（13周）
+**总工时**：258.5人日（约260人日，13周）
 **团队规模**：前端1人 + 后端1人 + UI/UX 0.5人 + QA 0.5人 + PM 0.5人
