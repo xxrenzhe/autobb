@@ -1,33 +1,26 @@
 # 业务需求
-1.用户弹窗输入Offer的“推广链接”、“品牌名称”、“推广国家”、“店铺或商品落地页”，作为一个Offer的基本信息
+1.用户弹窗输入Offer的2个必填参数："推广链接"、"推广国家"，2个可选参数："产品价格"、"佣金比例"，作为一个Offer的基本信息
 示例1（亚马逊店铺）:
 - 推广链接：https://pboost.me/UKTs4I6
-- 品牌名称：Reolink
 - 推广国家：美国US
-- 店铺或商品落地页（即Final URL）：https://www.amazon.com/stores/page/201E3A4F-C63F-48A6-87B7-524F985330DA
 
 示例2（独立站店铺）:
 - Offer推广链接：https://pboost.me/xEAgQ8ec
-- 品牌名称：ITEHIL
 - 推广国家：德国DE
-- 店铺或商品落地页（即Final URL）：https://itehil.com/
 
 示例3（单个商品）:
 - Offer推广链接：https://pboost.me/RKWwEZR9
-- 品牌名称：Reolink
 - 推广国家：美国US
-- 店铺或商品落地页（即Final URL）：https://www.amazon.com/dp/B0B8HLXC8Y
 
 示例4（独立站首页）：
 - Offer推广链接：https://yeahpromos.com/index/index/openurl?track=606a814910875990&url=
-- 品牌名称：Diamonds Factory
 - 推广国家：美国US
-- 店铺或商品落地页（即Final URL）：https://www.diamondsfactory.ca/
 
 自动生成的字段：
 - offer_name，作为offer的唯一标识，格式是：[品牌名称]_[推广国家代号]_[序号]，示例：Reolink_US_01
 - 推广语言：根据国家确定推广语言，比如：若推广国家是“美国US”，则推广语言就是“English”；若推广国家是“德国GE”，则推广语言就是“German”
-- 店铺/产品描述：通过配置代理后真实访问“店铺或商品落地页”获取相关数据，并提取出品牌名称
+- 品牌名称：从网站抓取的数据中提取出品牌名称
+- 店铺/产品描述：通过配置代理后真实访问“店铺或商品落地页”获取相关数据
 - 用户输入的Offer推广链接，访问后需要经过多次重定向才能达到最终的落地页，需要从落地页的链接中截取Final URL和Final URL suffix
 - 其他需要的字段
 
