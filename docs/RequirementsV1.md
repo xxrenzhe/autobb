@@ -32,7 +32,7 @@
 
 5.根据国家确定推广语言，比如：若推广国家是“美国US”，则推广语言就是“English”；若推广国家是“德国GE”，则推广语言就是“German”
 
-6.调用Google Ads 的Keyword Planner工具来查询每个关键词在推广国家的搜索量
+6.调用Google Ads 的Keyword Planner工具来查询每个关键词在推广国家对应语言的搜索量
 
 7.通过Google Ads API获得每个Offer关联的所有广告系列的每日表现数据
 
