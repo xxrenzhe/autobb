@@ -240,7 +240,7 @@ $ npx tsx scripts/test-keyword-planner-fix.ts
 # 1. 登录
 curl -c cookies.txt -X POST http://localhost:3001/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"autoads","password":"123456"}'
+  -d '{"username":"autoads","password":"K$j6z!9Tq@P2w#aR"}'
 
 # 2. 测试关键词API
 curl -b cookies.txt "http://localhost:3001/api/keywords/volume?keywords=security+camera&country=US&language=en"

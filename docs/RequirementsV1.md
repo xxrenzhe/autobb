@@ -32,7 +32,7 @@
 
 5.根据国家确定推广语言，比如：若推广国家是“美国US”，则推广语言就是“English”；若推广国家是“德国GE”，则推广语言就是“German”
 
-6.调用Google Ads 的Keyword Planner工具来查询每个关键词在推广国家对应语言的搜索量
+6.调用Google Ads 的Keyword Planner工具来查询每个关键词在推广国家对应语言的搜索量，同时建立全局的redis缓存，便于其他offer或其他广告创意复用，且缓存有效期设置7天，减少对Keyword Planner的调用 
 
 7.通过Google Ads API获得每个Offer关联的所有广告系列的每日表现数据
 
@@ -74,10 +74,19 @@
 - objective 默认是 Website traffic
 - Conversion goals 默认是 Page views
 - campaign type 默认是 Search
-- bidding strategy 默认是 Maximize clicks
-- Maximum CPC bid limit 默认是 CN¥1.2 或等值的 US$0.17
-- budget 默认是对应ads账号的货币100单位，比如 CN¥100/day 或 US$100/day
 - EU political ads 默认是 No
+- Campaign Name、Ad Group Name和Ad Name都需要包含品牌名
+- Bidding Strategy：选择 Maximize Clicks
+- Target Country：与offer的推广国家保持一致
+- Target Language：与offer的推广国家映射的语言保持一致
+- Budget Type：每日预算
+- Budget Amount：10美元或等值的其他货币（根据ads账号支持的货币决定）
+- CPC Bid：0.17美元或等值的其他货币（根据ads账号支持的货币决定）
+- Headlines：必须配置15个，如果从广告创意中获得的标题数量不足，请报错
+- Descriptions：必须配置4个，如果从广告创意中获得的描述数量不足，请报错
+- Final URL：配置在广告层级，是从之前推广链接重定向访问后提取出的Final URL
+- Final URL suffix：配置在广告系列层级，是从之前推广链接重定向访问后提取出的Final URL suffix
+- keywords/callout/sitelink：都从offer需要发布的广告创意中获取，如果缺失则报错
 
 17.AI创意生成中，需要生成真实有效的callout和sitelink，可以参考Offer对应品牌的官网信息，并结合AI能力来实现
 
